@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{AED19C19-4A57-4730-B8DC-FFD0C755B044}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BaileysSharp", "src\BaileysSharp\BaileysSharp.csproj", "{C3FD2BE7-B3F1-494C-9B0B-73E8F7674754}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{6F5D8060-41E8-4F47-9668-E37FCF20AADE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BaileysSharp.Tests", "tests\BaileysSharp.Tests\BaileysSharp.Tests.csproj", "{D5CBBA5E-8964-448C-BDF6-13DA0A9224B6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C3FD2BE7-B3F1-494C-9B0B-73E8F7674754}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3FD2BE7-B3F1-494C-9B0B-73E8F7674754}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3FD2BE7-B3F1-494C-9B0B-73E8F7674754}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3FD2BE7-B3F1-494C-9B0B-73E8F7674754}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D5CBBA5E-8964-448C-BDF6-13DA0A9224B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D5CBBA5E-8964-448C-BDF6-13DA0A9224B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D5CBBA5E-8964-448C-BDF6-13DA0A9224B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D5CBBA5E-8964-448C-BDF6-13DA0A9224B6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C3FD2BE7-B3F1-494C-9B0B-73E8F7674754} = {AED19C19-4A57-4730-B8DC-FFD0C755B044}
+		{D5CBBA5E-8964-448C-BDF6-13DA0A9224B6} = {6F5D8060-41E8-4F47-9668-E37FCF20AADE}
+	EndGlobalSection
+EndGlobal
