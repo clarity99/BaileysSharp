@@ -54,19 +54,60 @@ public sealed class BaileysSocket : IBaileysSocket
     private async Task ReceiveLoopAsync(CancellationToken cancellationToken)
     {
         var buffer = new byte[8192];
+        using var messageBuffer = new MemoryStream();
 
         while (_socket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
         {
-            var segment = new ArraySegment<byte>(buffer);
-            var result = await _socket.ReceiveAsync(segment, cancellationToken);
-            if (result.MessageType == WebSocketMessageType.Close)
+            try
+            {
+                var result = await _socket.ReceiveAsync(buffer, cancellationToken);
+                if (result.MessageType == WebSocketMessageType.Close)
+                    break;
+
+                if (result.Count > 0)
+                    messageBuffer.Write(buffer, 0, result.Count);
+
+                if (!result.EndOfMessage)
+                    continue;
+
+                var payload = Encoding.UTF8.GetString(messageBuffer.GetBuffer(), 0, (int)messageBuffer.Length);
+                messageBuffer.SetLength(0);
+
+                var message = TryParseIncoming(payload);
+                if (message is not null)
+                    await NotifyMessageReceivedAsync(message);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
                 break;
+            }
+            catch (WebSocketException)
+            {
+                break;
+            }
+            catch (ObjectDisposedException)
+            {
+                break;
+            }
+        }
+    }
 
-            var payload = Encoding.UTF8.GetString(buffer, 0, result.Count);
-            var message = TryParseIncoming(payload);
+    private async Task NotifyMessageReceivedAsync(WaMessage message)
+    {
+        var handlers = MessageReceived;
+        if (handlers is null)
+            return;
 
-            if (message is not null && MessageReceived is not null)
-                await MessageReceived.Invoke(message);
+        foreach (var handler in handlers.GetInvocationList().Cast<Func<WaMessage, ValueTask>>())
+        {
+            try
+            {
+                await handler(message);
+            }
+            catch
+            {
+                // Subscriber failures should not stop the socket loop.
+            }
         }
     }
 
@@ -77,25 +118,36 @@ public sealed class BaileysSocket : IBaileysSocket
             using var doc = JsonDocument.Parse(payload);
             var root = doc.RootElement;
 
-            if (!root.TryGetProperty("id", out var idElement) ||
-                !root.TryGetProperty("chat", out var chatElement) ||
-                !root.TryGetProperty("from", out var fromElement))
+            if (!TryGetString(root, "id", out var id) ||
+                !TryGetString(root, "chat", out var chat) ||
+                !TryGetString(root, "from", out var from))
             {
                 return null;
             }
 
             return new WaMessage(
-                Id: idElement.GetString() ?? string.Empty,
-                ChatJid: chatElement.GetString() ?? string.Empty,
-                SenderJid: fromElement.GetString() ?? string.Empty,
-                MessageType: root.TryGetProperty("type", out var typeElement) ? typeElement.GetString() ?? "unknown" : "unknown",
-                Text: root.TryGetProperty("text", out var textElement) ? textElement.GetString() : null,
+                Id: id,
+                ChatJid: chat,
+                SenderJid: from,
+                MessageType: TryGetString(root, "type", out var type) ? type : "unknown",
+                Text: TryGetString(root, "text", out var text) ? text : null,
                 TimestampUtc: DateTimeOffset.UtcNow);
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException)
         {
             return null;
         }
+    }
+
+    private static bool TryGetString(JsonElement root, string propertyName, out string value)
+    {
+        value = string.Empty;
+        if (!root.TryGetProperty(propertyName, out var element))
+            return false;
+        if (element.ValueKind != JsonValueKind.String)
+            return false;
+        value = element.GetString() ?? string.Empty;
+        return true;
     }
 
     public async ValueTask DisposeAsync()
@@ -104,7 +156,16 @@ public sealed class BaileysSocket : IBaileysSocket
             await _socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Disposing", CancellationToken.None);
 
         if (_receiveLoop is not null)
-            await _receiveLoop;
+        {
+            try
+            {
+                await _receiveLoop;
+            }
+            catch (Exception ex) when (ex is OperationCanceledException or WebSocketException or ObjectDisposedException)
+            {
+                // Ignore common shutdown races.
+            }
+        }
 
         _socket.Dispose();
     }
